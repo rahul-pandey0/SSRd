@@ -39,6 +39,9 @@ builder.Services.AddScoped<IOtpService, OtpService>();
 builder.Services.AddSingleton<ISmsService, MockSmsService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IMembershipService, MembershipService>();
+
+
 
 // Swagger with JWT support
 builder.Services.AddEndpointsApiExplorer();

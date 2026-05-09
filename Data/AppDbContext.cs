@@ -8,7 +8,9 @@ public class AppDbContext : DbContext
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     public DbSet<TmMembership> TmMemberships { get; set; }
+    public DbSet<TtRdDeposit> TtRdDeposit { get; set; }
     public DbSet<TmOtp> TmOtps { get; set; }
+    public DbSet<TtRdDepositOnline> TtRdDepositOnlines { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -20,6 +22,14 @@ public class AppDbContext : DbContext
             entity.Property(e => e.AuthStatus).HasDefaultValue("U");
             entity.Property(e => e.Age).HasDefaultValue(0.0);
             entity.HasIndex(e => e.MembershipNo).HasDatabaseName("index2");
+        });
+        
+        modelBuilder.Entity<TtRdDepositOnline>(entity =>
+        {
+            entity.ToTable("tt_rddepositonline");
+            entity.HasKey(e => e.RdDepositsId);
+            entity.Property(e => e.AuthStatus).HasDefaultValue("U");
+            entity.HasIndex(e => e.MEMBERSHIP_NO).HasDatabaseName("index2");
         });
 
         modelBuilder.Entity<TmOtp>(entity =>

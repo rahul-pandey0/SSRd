@@ -37,7 +37,7 @@ public class RegisterRequest
 
     public double Age { get; set; }
 
-    public DateOnly? Birthdate { get; set; }
+    public DateTime Birthdate { get; set; }
 
     [MaxLength(45)]
     public string? Pancard { get; set; }
@@ -73,6 +73,11 @@ public class RegisterResponse
     public string Message { get; set; } = string.Empty;
 }
 
+public class RDResponse
+{
+    public string MEMBERSHIP_NO { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+}
 public class ApiResponse<T>
 {
     public bool Success { get; set; }
@@ -84,4 +89,18 @@ public class ApiResponse<T>
 
     public static ApiResponse<T> Fail(string message) =>
         new() { Success = false, Message = message };
+}
+public class RDCreateRequest
+{
+    
+    public string? MEMBERSHIP_NO { get; set; }
+    public string? name { get; set; }
+
+    public string? Deposit_Type { get; set; }
+
+    public double? Deposit_Amount { get; set; }
+
+    public int? Tenor { get; set; }
+
+    public DateTime? CreatedDate { get; set; }
 }

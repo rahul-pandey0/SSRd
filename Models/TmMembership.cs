@@ -43,7 +43,7 @@ public class TmMembership
     public double Age { get; set; } = 0;
 
     [Column("Birthdate")]
-    public DateOnly? Birthdate { get; set; }
+    public DateTime? Birthdate { get; set; }
 
     [Column("Pancard")]
     [MaxLength(45)]

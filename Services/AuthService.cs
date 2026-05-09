@@ -70,15 +70,16 @@ public class AuthService : IAuthService
             PhoneNo = request.PhoneNo,
             Name = request.Name,
             FatherName = request.FatherName,
-            Address = request.Address,
-            Age = request.Age,
+            Address = request.Address,  
             Birthdate = request.Birthdate,
+            Age = CalculateAge(request.Birthdate),
             Pancard = request.Pancard,
             AdharCard = request.AdharCard,
             CreatedDate = DateOnly.FromDateTime(DateTime.UtcNow),
             FormDate = DateOnly.FromDateTime(DateTime.UtcNow),
             AuthStatus = "U"
         };
+
 
         _db.TmMemberships.Add(member);
         await _db.SaveChangesAsync();
@@ -95,5 +96,14 @@ public class AuthService : IAuthService
             MembershipNo = member.MembershipNo,
             Message = "Registration successful. Please login with your mobile number."
         };
+
+
+    }
+    private double CalculateAge(DateTime dob)
+    {
+        var today = DateTime.Today;
+        var age = today.Year - dob.Year;
+        if (dob > today.AddYears(-age)) age--;
+        return age;
     }
 }
