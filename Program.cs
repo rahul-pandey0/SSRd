@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using SSRd.Configuration;
 using SSRd.Data;
 using SSRd.Services;
 
@@ -33,6 +34,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 builder.Services.AddControllers();
+builder.Services.AddHttpContextAccessor();
+
+// Settings
+builder.Services.Configure<RdSettings>(builder.Configuration.GetSection("RdSettings"));
 
 // Services
 builder.Services.AddScoped<IOtpService, OtpService>();
@@ -40,6 +45,9 @@ builder.Services.AddSingleton<ISmsService, MockSmsService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IMembershipService, MembershipService>();
+builder.Services.AddScoped<IAdminAuthService, AdminAuthService>();
+builder.Services.AddScoped<ILoginAuditService, LoginAuditService>();
+builder.Services.AddSingleton<IPasswordCipher, LegacyDesPasswordCipher>();
 
 
 

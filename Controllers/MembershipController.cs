@@ -1,20 +1,20 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SSRd.DTOs;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SSRd.Services;
 
 namespace SSRd.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class MembershipController : ControllerBase
     {
-        private readonly IMembershipService _auth;
+        private readonly IMembershipService _membership;
         private readonly ILogger<MembershipController> _logger;
 
-        public MembershipController(IMembershipService auth, ILogger<MembershipController> logger)
+        public MembershipController(IMembershipService membership, ILogger<MembershipController> logger)
         {
-            _auth = auth;
+            _membership = membership;
             _logger = logger;
         }
 
@@ -23,7 +23,10 @@ namespace SSRd.Controllers
         {
             try
             {
-                var result = await _auth.Getmemberdetails(membershipNo);
+                if (!IsOwnerOrAdmin(membershipNo))
+                    return Forbid();
+
+                var result = await _membership.Getmemberdetails(membershipNo);
 
                 if (result == null)
                 {
@@ -43,7 +46,6 @@ namespace SSRd.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error while fetching member details for {membershipNo}", membershipNo);
-
                 return StatusCode(500, new
                 {
                     Status = false,
@@ -51,9 +53,8 @@ namespace SSRd.Controllers
                 });
             }
         }
-    
 
-    [HttpGet]
+        [HttpGet]
         public async Task<IActionResult> GetByRDNo(string? membershipNo, string? rdaccno)
         {
             try
@@ -67,7 +68,18 @@ namespace SSRd.Controllers
                     });
                 }
 
-                var result = await _auth.Getrdaccdetails(membershipNo, rdaccno);
+                if (!string.IsNullOrEmpty(membershipNo) && !IsOwnerOrAdmin(membershipNo))
+                    return Forbid();
+
+                var result = await _membership.Getrdaccdetails(membershipNo, rdaccno);
+
+                if (!IsAdmin() && !string.IsNullOrEmpty(rdaccno))
+                {
+                    var tokenMembership = User.FindFirst("membershipNo")?.Value;
+                    result = result
+                        .Where(r => r.MEMBERSHIP_NO == tokenMembership)
+                        .ToList();
+                }
 
                 if (result == null || !result.Any())
                 {
@@ -78,7 +90,6 @@ namespace SSRd.Controllers
                     });
                 }
 
-
                 return Ok(new
                 {
                     Status = true,
@@ -88,7 +99,6 @@ namespace SSRd.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error while fetching RD Account details for {membershipNo}", membershipNo);
-
                 return StatusCode(500, new
                 {
                     Status = false,
@@ -96,6 +106,15 @@ namespace SSRd.Controllers
                 });
             }
         }
-    }
 
+        private bool IsAdmin() => User.IsInRole("Admin");
+
+        private bool IsOwnerOrAdmin(string membershipNo)
+        {
+            if (IsAdmin()) return true;
+            var tokenMembership = User.FindFirst("membershipNo")?.Value;
+            return !string.IsNullOrEmpty(tokenMembership)
+                && string.Equals(tokenMembership, membershipNo, StringComparison.OrdinalIgnoreCase);
+        }
+    }
 }

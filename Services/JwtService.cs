@@ -38,4 +38,31 @@ public class JwtService : IJwtService
 
         return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
     }
+
+    public (string Token, DateTime ExpiresAt) GenerateAdminToken(TbUserPassword admin)
+    {
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var expiresAt = DateTime.UtcNow.AddHours(int.Parse(_config["Jwt:ExpiryHours"] ?? "24"));
+
+        var claims = new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, admin.UserId.ToString()),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim("userId", admin.UserId.ToString()),
+            new Claim("userName", admin.UserName ?? string.Empty),
+            new Claim("branch", admin.UserBranch ?? string.Empty),
+            new Claim(ClaimTypes.Role, "Admin"),
+        };
+
+        var token = new JwtSecurityToken(
+            issuer: _config["Jwt:Issuer"],
+            audience: _config["Jwt:Audience"],
+            claims: claims,
+            expires: expiresAt,
+            signingCredentials: creds
+        );
+
+        return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
+    }
 }

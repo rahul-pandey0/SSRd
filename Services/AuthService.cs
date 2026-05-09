@@ -11,13 +11,23 @@ public class AuthService : IAuthService
     private readonly IOtpService _otp;
     private readonly ISmsService _sms;
     private readonly IJwtService _jwt;
+    private readonly ILoginAuditService _audit;
+    private readonly IHttpContextAccessor _http;
 
-    public AuthService(AppDbContext db, IOtpService otp, ISmsService sms, IJwtService jwt)
+    public AuthService(
+        AppDbContext db,
+        IOtpService otp,
+        ISmsService sms,
+        IJwtService jwt,
+        ILoginAuditService audit,
+        IHttpContextAccessor http)
     {
         _db = db;
         _otp = otp;
         _sms = sms;
         _jwt = jwt;
+        _audit = audit;
+        _http = http;
     }
 
     public async Task<InitiateResponse> InitiateAsync(string phoneNo)
@@ -45,6 +55,10 @@ public class AuthService : IAuthService
         await _otp.InvalidateAsync(request.PhoneNo, request.Otp);
 
         var (token, expiresAt) = _jwt.GenerateToken(member);
+
+        var ip = _http.HttpContext?.Connection.RemoteIpAddress?.ToString();
+        await _audit.RecordLoginAsync(member.MemberId, member.Name, ip, branchCode: null);
+
         return new AuthResponse
         {
             Token = token,

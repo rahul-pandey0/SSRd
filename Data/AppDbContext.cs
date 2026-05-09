@@ -11,6 +11,8 @@ public class AppDbContext : DbContext
     public DbSet<TtRdDeposit> TtRdDeposit { get; set; }
     public DbSet<TmOtp> TmOtps { get; set; }
     public DbSet<TtRdDepositOnline> TtRdDepositOnlines { get; set; }
+    public DbSet<TbUserPassword> TbUserPasswords { get; set; }
+    public DbSet<TbUserLoginDetails> TbUserLoginDetails { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

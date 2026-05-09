@@ -24,8 +24,22 @@ namespace SSRd.Models
 
         public DateTime? CreatedDate { get; set; }
 
+        [Column("CreatedBy")]
+        [MaxLength(30)]
+        public string? CreatedBy { get; set; }
+
+        [Column("CreatedTime")]
+        public TimeOnly? CreatedTime { get; set; }
+
         [Column("AuthStatus")]
         [MaxLength(1)]
         public string AuthStatus { get; set; } = "U";
+
+        [Column("AuthBy")]
+        [MaxLength(30)]
+        public string? AuthBy { get; set; }
+
+        [Column("AuthTime")]
+        public DateTime? AuthTime { get; set; }
     }
 }
