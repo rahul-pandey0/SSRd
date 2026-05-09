@@ -10,10 +10,9 @@ obj/
 ## Rider / JetBrains
 .idea/
 
-## Environment / secrets — copy appsettings.template.json → appsettings.json and fill in values
-appsettings.json
-appsettings.*.json
-!appsettings.template.json
+## Local-only environment overrides
+appsettings.Development.json
+appsettings.Local.json
 
 ## OS
 Thumbs.db
