@@ -31,7 +31,9 @@ public class OtpService : IOtpService
         });
 
         await _db.SaveChangesAsync();
-        //  await SendOtpSms(phoneNo, code);
+
+          await SendOtpSms(phoneNo, code);
+
         return code;
     }
 
