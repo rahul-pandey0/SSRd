@@ -74,17 +74,18 @@ public class AuthService : IAuthService
         if (!await _otp.VerifyAsync(request.PhoneNo, request.Otp))
             throw new InvalidOperationException("Invalid or expired OTP.");
 
-        var existing = await _db.TmMemberships
+        var existing = await _db.Tmmebershipregistrations
             .AnyAsync(m => m.PhoneNo == request.PhoneNo);
         if (existing)
-            throw new InvalidOperationException("Mobile number already registered. Please login.");
+            throw new InvalidOperationException("Mobile number already registered. Admin has to approve your request for membership .");
 
-        var member = new TmMembership
+        var member = new Tmmebershipregistration
         {
             PhoneNo = request.PhoneNo,
+            Branchcode = "BR001",
             Name = request.Name,
             FatherName = request.FatherName,
-            Address = request.Address,  
+            Address = request.Address,
             Birthdate = request.Birthdate,
             Age = CalculateAge(request.Birthdate),
             Pancard = request.Pancard,
@@ -95,7 +96,7 @@ public class AuthService : IAuthService
         };
 
 
-        _db.TmMemberships.Add(member);
+        _db.Tmmebershipregistrations.Add(member);
         await _db.SaveChangesAsync();
 
         // Assign membership number now that auto-increment ID is available

@@ -110,10 +110,7 @@ namespace SSRd.Models
 
         public double? ExcessAmount { get; set; }
 
-        [StringLength(45)]
-        public string? OldAccountNo { get; set; }
-
-        [StringLength(45)]
-        public string? CustAccBranch { get; set; }
     }
 }
+
+

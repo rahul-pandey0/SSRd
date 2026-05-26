@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SSRd.DTOs;
 using SSRd.Services;
 
 namespace SSRd.Controllers
@@ -104,6 +105,40 @@ namespace SSRd.Controllers
                     Status = false,
                     Message = "Something went wrong. Please try again."
                 });
+            }
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("mempending")]
+        public async Task<IActionResult> Pending()
+        {
+            var list = await _membership.GetMemPendingAsync();
+            return Ok(ApiResponse<object>.Ok(list));
+        }
+
+
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost("{id:int}/memauthorize")]
+        public async Task<IActionResult> Authorize(int id)
+        {
+            try
+            {
+                var adminId = int.Parse(User.FindFirst("userId")?.Value ?? "0");
+                var adminUserName = User.FindFirst("userName")?.Value ?? "unknown";
+                var adminBranch = User.FindFirst("branch")?.Value;
+                var result = await _membership.MemAuthorizeAsync(id, adminId, adminUserName, adminBranch);
+                return Ok(ApiResponse<MembersResponse>.Ok(result, result.Message));
+
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Authorize Member {Id} failed", id);
+                return StatusCode(500, ApiResponse<object>.Fail("Something went wrong. Please try again."));
             }
         }
 

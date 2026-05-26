@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.EntityFrameworkCore;
 using SSRd.Data;
 using SSRd.Models;
@@ -30,7 +31,41 @@ public class OtpService : IOtpService
         });
 
         await _db.SaveChangesAsync();
+        //  await SendOtpSms(phoneNo, code);
         return code;
+    }
+
+    private async Task SendOtpSms(string phoneNo, string otp)
+    {
+        try
+        {
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
+            string authKey = "3605erh7Z0jtiCI4oEW9TT";
+            string senderId = "SBSCCL";
+
+            string message = $"Your OTP is {otp}. Do not share it with anyone.SOUTH BANGALORE SOUHARDA CREDIT CO-OPERATIVE LIMITED";
+
+            string url =
+                $"https://sms.shreetripada.com/api/sendapi.php" +
+                $"?auth_key={authKey}" +
+                $"&mobiles={phoneNo}" +
+                $"&message={Uri.EscapeDataString(message)}" +
+                $"&sender={senderId}" +
+                $"&route=4";
+
+            using HttpClient client = new HttpClient();
+
+            string response = await client.GetStringAsync(url);
+
+            // Save SMS Log
+            //await SaveSmsLog(message, response);
+        }
+        catch (Exception ex)
+        {
+            // Optional logging
+            throw new Exception("SMS sending failed", ex);
+        }
     }
 
     public async Task<bool> VerifyAsync(string phoneNo, string otp)

@@ -22,14 +22,17 @@ namespace SSRd.Models
 
         public int? Tenor { get; set; }
 
+        [StringLength(30)]
+        public string? Nominee { get; set; }
+
         public DateTime? CreatedDate { get; set; }
 
         [Column("CreatedBy")]
         [MaxLength(30)]
         public string? CreatedBy { get; set; }
 
-        [Column("CreatedTime")]
-        public TimeOnly? CreatedTime { get; set; }
+        //[Column("CreatedTime")]
+        //public TimeOnly? CreatedTime { get; set; }
 
         [Column("AuthStatus")]
         [MaxLength(1)]
