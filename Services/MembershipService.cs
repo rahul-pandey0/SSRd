@@ -68,7 +68,8 @@ public class MembershipService : IMembershipService
             Deposit_Amount = request.Deposit_Amount,
             CreatedDate = now.Date,
             CreatedBy = createdBy,
-            CreatedTime = TimeOnly.FromDateTime(now),
+            Nominee = request.Nominee,
+            //CreatedTime = TimeOnly.FromDateTime(now),
             AuthStatus = autoAuth ? "A" : "U",
             AuthBy = autoAuth ? createdBy : null,
             AuthTime = autoAuth ? now : null
@@ -88,7 +89,7 @@ public class MembershipService : IMembershipService
             AuthStatus = deposit.AuthStatus,
             CreatedBy = deposit.CreatedBy,
             CreatedDate = deposit.CreatedDate,
-            CreatedTime = deposit.CreatedTime,
+            //  CreatedTime = deposit.CreatedTime,
             AuthBy = deposit.AuthBy,
             AuthTime = deposit.AuthTime,
             Message = autoAuth
@@ -109,18 +110,27 @@ public class MembershipService : IMembershipService
         var rate = online.Tenor.HasValue && _rd.InterestRates.TryGetValue(online.Tenor.Value, out var r) ? r : 0;
         var now = DateTime.Now;
         var today = now.Date;
-        var tenorYears = online.Tenor ?? 0;
-        var liquidationDate = tenorYears > 0 ? today.AddYears(tenorYears) : today;
+        var tenorMonths = online.Tenor ?? 0;
+        var liquidationDate = tenorMonths > 0 ? today.AddMonths(tenorMonths) : today;
 
         using var tx = await _db.Database.BeginTransactionAsync();
+
+        var product = await _db.TmProductTypes
+           .FirstOrDefaultAsync(x => x.Product_Code == online.Deposit_Type);
 
         var booked = new TtRdDeposit
         {
             BranchCode = adminBranch,
             MEMBERSHIP_NO = online.MEMBERSHIP_NO,
-            Deposit_Type = online.Deposit_Type,
+            Deposit_Type = "RD",
+            Product_Code = online.Deposit_Type,
+            ProductType = "RD",
             InterestRate = rate,
             Deposit_Amount = online.Deposit_Amount,
+            InterestExpenseAccount = product.InterestExpenseAccount,
+            CashGl = product.CashGl,
+            LiabilityGl = product.LiabilityGl,
+            Liquidation_Mode = "19",
             Tenor = online.Tenor,
             value_Date = today,
             Book_Date = today,
@@ -140,15 +150,45 @@ public class MembershipService : IMembershipService
         _db.TtRdDeposit.Add(booked);
         await _db.SaveChangesAsync();
 
-        booked.RdRefNumber = $"RD{booked.RdDepositsId:D7}";
-        booked.Deposit_Account = $"DA{booked.RdDepositsId:D7}";
+        var counter = await _db.TbMembernocounters
+    .FirstOrDefaultAsync(x => x.BranchCode == adminBranch);
+
+        if (counter == null)
+            throw new InvalidOperationException("Counter details not found.");
+
+        int nextRdCounter = (counter.RD_Ctr ?? 0) + 1;
+
+        booked.RdRefNumber = $"{adminBranch}RD{nextRdCounter.ToString("D5")}";
+
+        counter.RD_Ctr = nextRdCounter;
+
+
+        // Deposit Account Logic
+
+
+        if (product == null)
+            throw new InvalidOperationException("Product details not found.");
+
+        string bankRefId = counter.BankRef_ID ?? "";
+
+        int nextProductAccNo = Convert.ToInt32(product.ProductBasedAccountNo ?? 0) + 1;
+
+        string productCode = product.ProductBasedCode ?? "RD";
+
+        booked.Deposit_Account = $"{bankRefId}{productCode}{nextProductAccNo.ToString("D5")}";
+
+        product.ProductBasedAccountNo = nextProductAccNo;
+
 
         online.AuthStatus = "A";
         online.AuthBy = adminUserName;
         online.AuthTime = now;
 
+
         await _db.SaveChangesAsync();
         await tx.CommitAsync();
+        await _db.Database.ExecuteSqlRawAsync("CALL P_RDSCHEDULEgen({0})", booked.RdDepositsId);
+
 
         return new RDResponse
         {
@@ -161,12 +201,13 @@ public class MembershipService : IMembershipService
             AuthStatus = online.AuthStatus,
             CreatedBy = online.CreatedBy,
             CreatedDate = online.CreatedDate,
-            CreatedTime = online.CreatedTime,
+            //CreatedTime = online.CreatedTime,
             AuthBy = online.AuthBy,
             AuthTime = online.AuthTime,
             Message = $"Authorized by {adminUserName} (id {adminUserId}). Booked as {booked.RdRefNumber} / {booked.Deposit_Account}."
         };
     }
+
 
     public async Task<List<TtRdDepositOnline>> GetPendingAsync()
     {
@@ -175,4 +216,91 @@ public class MembershipService : IMembershipService
             .OrderByDescending(x => x.RdDepositsId)
             .ToListAsync();
     }
+
+    public async Task<List<Tmmebershipregistration>> GetMemPendingAsync()
+    {
+        return await _db.Tmmebershipregistrations
+            .Where(x => x.AuthStatus == "U")
+            .OrderByDescending(x => x.MemberId)
+            .ToListAsync();
+    }
+
+
+    public async Task<MembersResponse> MemAuthorizeAsync(int memberId, int adminUserId, string adminUserName, string adminBranch)
+    {
+        var online = await _db.Tmmebershipregistrations
+            .FirstOrDefaultAsync(x => x.MemberId == memberId)
+            ?? throw new InvalidOperationException("Membership not found.");
+
+        if (online.AuthStatus == "A")
+            throw new InvalidOperationException("Membership details already authorized.");
+
+
+
+        using var tx = await _db.Database.BeginTransactionAsync();
+
+        var counter = await _db.TbMembernocounters
+            .FirstOrDefaultAsync(x => x.BranchCode == adminBranch);
+
+        if (counter == null)
+            throw new InvalidOperationException("Member counter not found.");
+
+        string bankRefId = counter.BankRef_ID ?? "";
+
+        int nextCounter = (counter.NonMemberCtr ?? 0) + 1;
+
+        string membershipNo = $"{bankRefId}NM{nextCounter.ToString("D4")}";
+
+        var booked = new TmMembership
+        {
+            MembershipNo = membershipNo,
+            PhoneNo = online.PhoneNo,
+            Branchcode = adminBranch,
+            Name = online.Name,
+            FatherName = online.FatherName,
+            Address = online.Address,
+            Birthdate = online.Birthdate,
+            Age = online.Age,
+            Pancard = online.Pancard,
+            AdharCard = online.AdharCard,
+            AuthStatus = "A",
+            AuthorisedBy = adminUserId,
+            CreatedDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            AuthorisedDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            FormDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            Homebranch ="BR001"
+
+        };
+        booked.Memberstatus = (online.Age) >= 18 ? "Major" : "Minor";
+
+
+        _db.TmMemberships.Add(booked);
+
+        await _db.SaveChangesAsync();
+
+        counter.NonMemberCtr = nextCounter;
+
+        online.AuthStatus = "A";
+        online.AuthorisedBy = adminUserId;
+        online.AuthorisedDate = DateTime.Now;
+
+        await _db.SaveChangesAsync();
+
+        await tx.CommitAsync();
+
+
+
+        return new MembersResponse
+        {
+            PhoneNo = booked.PhoneNo ?? string.Empty,
+            Name = booked.Name ?? string.Empty,
+            FatherName = booked.FatherName,
+            Address = booked.Address,
+            Age = booked.Age,
+            Pancard = booked.Pancard,
+            AdharCard = booked.AdharCard,
+            Message = $"Authorized by {adminUserName} (id {adminUserId}). Membership No is {booked.MembershipNo}."
+        };
+    }
+
 }

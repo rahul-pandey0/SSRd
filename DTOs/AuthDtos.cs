@@ -135,4 +135,38 @@ public class RDCreateRequest
     public int? Tenor { get; set; }
 
     public DateTime? CreatedDate { get; set; }
+    public string? Nominee { get; set; }
+}
+
+public class MembersResponse
+{
+    [Required]
+    [Phone]
+    public string PhoneNo { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(6, MinimumLength = 6)]
+    public string Otp { get; set; } = string.Empty;
+
+
+    [Required]
+    [MaxLength(150)]
+    public string Name { get; set; } = string.Empty;
+
+    [MaxLength(150)]
+    public string? FatherName { get; set; }
+
+    [MaxLength(150)]
+    public string? Address { get; set; }
+
+    public double Age { get; set; }
+
+    public DateTime Birthdate { get; set; }
+
+    [MaxLength(45)]
+    public string? Pancard { get; set; }
+
+    [MaxLength(45)]
+    public string? AdharCard { get; set; }
+    public string Message { get; set; } = string.Empty;
 }

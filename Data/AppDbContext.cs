@@ -13,6 +13,10 @@ public class AppDbContext : DbContext
     public DbSet<TtRdDepositOnline> TtRdDepositOnlines { get; set; }
     public DbSet<TbUserPassword> TbUserPasswords { get; set; }
     public DbSet<TbUserLoginDetails> TbUserLoginDetails { get; set; }
+    public DbSet<Tmmebershipregistration> Tmmebershipregistrations { get; set; }
+    public DbSet<TbMembernocounter> TbMembernocounters { get; set; }
+    public DbSet<TmProductType> TmProductTypes { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
